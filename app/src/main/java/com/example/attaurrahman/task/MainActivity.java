@@ -152,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void updateTv() {
-        ListHelper listHelper = new ListHelper();
+
         mStatusView.setText(Double.toString((getAmplitudeEMA())) + " dB");
         strNoise = Double.toString((getAmplitudeEMA())) + " dB";
 

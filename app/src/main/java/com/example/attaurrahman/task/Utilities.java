@@ -140,55 +140,7 @@ public class Utilities {
         return byteBuffer.toByteArray();
     }
 
-    public static void getLocation(Context context, LocationManager locationManager, View view) {
-        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission
-                (context, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 
-            ActivityCompat.requestPermissions((Activity) context, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_LOCATION);
-
-        } else {
-            Location location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-
-            Location location1 = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-
-            Location location2 = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
-
-
-            if (location != null) {
-                double latti = location.getLatitude();
-                double longi = location.getLongitude();
-
-                lattitude = latti;
-                longitude = longi;
-                Utilities.putValueInEditor(context).putString("lattitude", String.valueOf(latti)).commit();
-                Utilities.putValueInEditor(context).putString("longitude", String.valueOf(longi)).commit();
-                //Utilities.imageViewDeclaration(R.id.iv_current_check_location, view).setVisibility(View.VISIBLE);
-
-
-            } else if (location1 != null) {
-                double latti = location1.getLatitude();
-                double longi = location1.getLongitude();
-
-                lattitude = latti;
-                longitude = longi;
-                Toast.makeText(context, String.valueOf(latti) + "2", Toast.LENGTH_SHORT).show();
-
-            } else if (location2 != null) {
-                double latti = location2.getLatitude();
-                double longi = location2.getLongitude();
-                lattitude = latti;
-                longitude = longi;
-
-                Toast.makeText(context, String.valueOf(latti) + "3", Toast.LENGTH_SHORT).show();
-
-
-            } else {
-
-                Toast.makeText(context, "Unble to Trace your location", Toast.LENGTH_SHORT).show();
-
-            }
-        }
     }
 
-}
+
