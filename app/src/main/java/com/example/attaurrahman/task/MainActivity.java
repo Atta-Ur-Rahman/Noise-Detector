@@ -3,6 +3,8 @@ package com.example.attaurrahman.task;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationManager;
 import android.media.MediaRecorder;
 import android.os.Environment;
 import android.os.Handler;
@@ -23,7 +25,12 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.StringWriter;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -32,10 +39,22 @@ public class MainActivity extends AppCompatActivity {
     Thread runner;
     private static double mEMA = 0.0;
     static final private double EMA_FILTER = 0.6;
+    String strNoise;
+    File root, gpxfile;
+    FileWriter writer;
+    Boolean aBoolean;
+    double lattitude;
+    double longitude;
+    LocationManager locationManager;
+    private static final int REQUEST_LOCATION = 1;
 
-    private List<ListHelper> listHelpers;
-    JSONObject jsonObject;
 
+    //Delimiter used in CSV file
+    private static final String COMMA_DELIMITER = ",";
+    private static final String NEW_LINE_SEPARATOR = "\n";
+
+    //CSV file header
+    private static final String FILE_HEADER = "id,firstName,lastName,gender,age";
 
     final Runnable updater = new Runnable() {
 
@@ -66,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
 
         }
-        mStatusView = (TextView) findViewById(R.id.status);
+        mStatusView = findViewById(R.id.status);
 
 
         if (runner == null) {
@@ -135,8 +154,15 @@ public class MainActivity extends AppCompatActivity {
     public void updateTv() {
         ListHelper listHelper = new ListHelper();
         mStatusView.setText(Double.toString((getAmplitudeEMA())) + " dB");
-        String body = Double.toString((getAmplitudeEMA())) + " dB";
-        listHelper.setOutPut(body);
+        strNoise = Double.toString((getAmplitudeEMA())) + " dB";
+
+        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            Toast.makeText(this, "No GPS", Toast.LENGTH_SHORT).show();
+
+        } else if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            getLocation();
+        }
         generateNoteOnSD();
 
 
@@ -160,48 +186,98 @@ public class MainActivity extends AppCompatActivity {
         return mEMA;
     }
 
+
     public void generateNoteOnSD() {
 
 
         try {
-            // Create a new JSONObject
 
+            root = new File(Environment.getExternalStorageDirectory(), "Noise Detector");
 
-            File root = new File(Environment.getExternalStorageDirectory(), "Notes");
             if (!root.exists()) {
                 root.mkdirs();
+                Utilities.putValueInEditor(this).putBoolean("title", true).commit();
             }
-            File gpxfile = new File(root, "textFile" + ".html");
+            gpxfile = new File(root, "Noise Detector" + ".CSV");
+            if (!gpxfile.exists()) {
+                Utilities.putValueInEditor(this).putBoolean("title", true).commit();
+            }
+            writer = new FileWriter(gpxfile, true);
+            aBoolean = Utilities.getSharedPreferences(this).getBoolean("title", false);
+            if (aBoolean) {
+                writer.append("Noise");
+                writer.append(COMMA_DELIMITER);
+                writer.append("Location");
+                writer.append(COMMA_DELIMITER);
+                writer.append("Time Stamp");
+                writer.append(NEW_LINE_SEPARATOR);
+            }
+            Date currentTime = Calendar.getInstance().getTime();
+            String time = String.valueOf(currentTime);
 
-            ListHelper listHelper = new ListHelper();
-            JSONObject parent = new JSONObject();
-            JSONArray array = new JSONArray();
-            FileWriter writer = new FileWriter(gpxfile, true);
 
-            FileOutputStream out = openFileOutput("textFile.txt", MODE_APPEND);
-            BufferedWriter output = new BufferedWriter(writer);
+            writer.append(strNoise);
+            writer.append(COMMA_DELIMITER);
+            writer.append(String.valueOf(lattitude + "," + longitude));
+            writer.append(COMMA_DELIMITER);
+            writer.append(time);
+            writer.append(NEW_LINE_SEPARATOR);
 
-
-            JSONObject tempObj = new JSONObject();
-            tempObj.put("OutPut", listHelper.getOutPut());
-            tempObj.put("First Name", "Ahmad");
-            tempObj.put("Last Name", "Ali");
-
-            jsonObject.put("adress", tempObj);
-            array.put(jsonObject);
-
-            parent.put("user", array);
-            writer.append(parent.toString());
 
             writer.flush();
             writer.close();
 
 
-            Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show();
+            // Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show();
+            Utilities.putValueInEditor(this).putBoolean("title", false).commit();
         } catch (IOException e) {
             e.printStackTrace();
-        } catch (JSONException e) {
-            e.printStackTrace();
+        }
+    }
+
+
+    private void getLocation() {
+        if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission
+                (MainActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_LOCATION);
+
+        } else {
+            Location location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+
+            Location location1 = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+
+            Location location2 = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
+
+            if (location != null) {
+                double latti = location.getLatitude();
+                double longi = location.getLongitude();
+
+                lattitude = latti;
+                longitude = longi;
+
+
+            } else if (location1 != null) {
+                double latti = location1.getLatitude();
+                double longi = location1.getLongitude();
+
+                lattitude = latti;
+                longitude = longi;
+
+
+            } else if (location2 != null) {
+                double latti = location2.getLatitude();
+                double longi = location2.getLongitude();
+                lattitude = latti;
+                longitude = longi;
+
+
+            } else {
+
+                Toast.makeText(this, "Unable to Trace your location", Toast.LENGTH_SHORT).show();
+
+            }
         }
     }
 
