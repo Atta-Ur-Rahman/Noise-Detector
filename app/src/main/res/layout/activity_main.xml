@@ -9,6 +9,7 @@
     android:id="@+id/fragment_container"
     tools:context="com.example.attaurrahman.task.MainActivity">
 
+
     <TextView
         android:id="@+id/tv_noise_detector"
         android:layout_width="match_parent"

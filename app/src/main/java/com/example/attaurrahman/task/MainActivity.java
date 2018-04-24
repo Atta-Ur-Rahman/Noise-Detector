@@ -16,8 +16,6 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
-
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -39,8 +37,6 @@ public class MainActivity extends AppCompatActivity {
     LocationManager locationManager;
     private static final int REQUEST_LOCATION = 1;
     Typeface typeface, typeface2;
-
-
     //Delimiter used in CSV file
     private static final String COMMA_DELIMITER = ",";
     private static final String NEW_LINE_SEPARATOR = "\n";
@@ -69,6 +65,12 @@ public class MainActivity extends AppCompatActivity {
         tvNoiseDetector = findViewById(R.id.tv_noise_detector);
         tvLocation = findViewById(R.id.tv_location);
         tvTimeStamp = findViewById(R.id.tv_time_stamp);
+
+        mStatusView = findViewById(R.id.status);
+        tvNoiseDetector = findViewById(R.id.tv_noise_detector);
+        tvLocation = findViewById(R.id.tv_location);
+        tvTimeStamp = findViewById(R.id.tv_time_stamp);
+
 
         typeface = Typeface.createFromAsset(this.getAssets(), "billabong.ttf");
         typeface2 = Typeface.createFromAsset(this.getAssets(), "SanFrancisco.otf");
