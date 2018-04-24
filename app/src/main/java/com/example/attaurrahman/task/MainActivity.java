@@ -66,10 +66,6 @@ public class MainActivity extends AppCompatActivity {
         tvLocation = findViewById(R.id.tv_location);
         tvTimeStamp = findViewById(R.id.tv_time_stamp);
 
-        mStatusView = findViewById(R.id.status);
-        tvNoiseDetector = findViewById(R.id.tv_noise_detector);
-        tvLocation = findViewById(R.id.tv_location);
-        tvTimeStamp = findViewById(R.id.tv_time_stamp);
 
 
         typeface = Typeface.createFromAsset(this.getAssets(), "billabong.ttf");
