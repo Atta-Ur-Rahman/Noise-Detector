@@ -64,6 +64,20 @@ public class Utilities {
         return context.getSharedPreferences(Configurations.MY_PREF, 0);
     }
 
+    public static Fragment connectFragment(Context context, Fragment fragment) {
+        ((AppCompatActivity) context).getFragmentManager().beginTransaction().replace(R.id.fragment_container, fragment).addToBackStack("true").commit();
+        return fragment;
+    }
+
+    public static Fragment connectFragmentWithOutBackStack(Context contextwithout, Fragment fragmentWithOut) {
+        ((AppCompatActivity) contextwithout).getFragmentManager().beginTransaction().replace(R.id.fragment_container, fragmentWithOut).commit();
+        return fragmentWithOut;
+    }
+
+    public static Fragment connectFragmentForMyComplaint(Context context, Fragment fragment) {
+        ((AppCompatActivity) context).getFragmentManager().beginTransaction().replace(R.id.fragment_container, fragment).commit();
+        return fragment;
+    }
 
     public static Button buttonDeclaration(int buttonID, View view) {
         button = (Button) view.findViewById(buttonID);
@@ -140,7 +154,55 @@ public class Utilities {
         return byteBuffer.toByteArray();
     }
 
+    public static void getLocation(Context context, LocationManager locationManager, View view) {
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission
+                (context, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 
+            ActivityCompat.requestPermissions((Activity) context, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_LOCATION);
+
+        } else {
+            Location location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+
+            Location location1 = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+
+            Location location2 = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
+
+
+            if (location != null) {
+                double latti = location.getLatitude();
+                double longi = location.getLongitude();
+
+                lattitude = latti;
+                longitude = longi;
+                Utilities.putValueInEditor(context).putString("lattitude", String.valueOf(latti)).commit();
+                Utilities.putValueInEditor(context).putString("longitude", String.valueOf(longi)).commit();
+
+
+
+            } else if (location1 != null) {
+                double latti = location1.getLatitude();
+                double longi = location1.getLongitude();
+
+                lattitude = latti;
+                longitude = longi;
+                Toast.makeText(context, String.valueOf(latti) + "2", Toast.LENGTH_SHORT).show();
+
+            } else if (location2 != null) {
+                double latti = location2.getLatitude();
+                double longi = location2.getLongitude();
+                lattitude = latti;
+                longitude = longi;
+
+                Toast.makeText(context, String.valueOf(latti) + "3", Toast.LENGTH_SHORT).show();
+
+
+            } else {
+
+                Toast.makeText(context, "Unble to Trace your location", Toast.LENGTH_SHORT).show();
+
+            }
+        }
     }
 
-
+}
