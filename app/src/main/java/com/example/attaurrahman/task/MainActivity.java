@@ -68,6 +68,9 @@ public class MainActivity extends AppCompatActivity {
 
 
 
+
+
+
         typeface = Typeface.createFromAsset(this.getAssets(), "billabong.ttf");
         typeface2 = Typeface.createFromAsset(this.getAssets(), "SanFrancisco.otf");
         tvTimeStamp.setTypeface(typeface2);
@@ -242,6 +245,8 @@ public class MainActivity extends AppCompatActivity {
             tvTimeStamp.setText(strtime);
 
             // Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show();
+
+            Toast.makeText(this, strNoise, Toast.LENGTH_SHORT).show();
             Utilities.putValueInEditor(this).putBoolean("title", false).commit();
         } catch (IOException e) {
             e.printStackTrace();
