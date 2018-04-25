@@ -16,6 +16,9 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.taishi.library.Indicator;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -37,6 +40,8 @@ public class MainActivity extends AppCompatActivity {
     LocationManager locationManager;
     private static final int REQUEST_LOCATION = 1;
     Typeface typeface, typeface2;
+    Indicator indicator;
+    int indicatorstepnum = 0;
     //Delimiter used in CSV file
     private static final String COMMA_DELIMITER = ",";
     private static final String NEW_LINE_SEPARATOR = "\n";
@@ -53,7 +58,6 @@ public class MainActivity extends AppCompatActivity {
         ;
     };
 
-
     final Handler mHandler = new Handler();
 
     @Override
@@ -67,6 +71,7 @@ public class MainActivity extends AppCompatActivity {
         tvTimeStamp = findViewById(R.id.tv_time_stamp);
 
 
+         indicator = findViewById(R.id.indicator);
 
 
 
@@ -166,6 +171,10 @@ public class MainActivity extends AppCompatActivity {
 
         mStatusView.setText(strNoise);
 
+        indicatorstepnum = mStatusView.getText().length();
+        indicator.setBarNum(indicatorstepnum);
+        indicator.setStepNum(indicatorstepnum);
+        indicator.setDuration(100000);
 
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
@@ -246,7 +255,7 @@ public class MainActivity extends AppCompatActivity {
 
             // Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show();
 
-            Toast.makeText(this, strNoise, Toast.LENGTH_SHORT).show();
+
             Utilities.putValueInEditor(this).putBoolean("title", false).commit();
         } catch (IOException e) {
             e.printStackTrace();

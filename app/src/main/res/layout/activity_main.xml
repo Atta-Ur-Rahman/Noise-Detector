@@ -14,7 +14,7 @@
         android:id="@+id/tv_noise_detector"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="100sp"
+        android:layout_marginTop="90sp"
         android:textSize="50sp"
         android:textColor="#ffffff"
         android:text="Noise Detector"
@@ -93,9 +93,25 @@
             android:layout_marginTop="30sp"/>
     </LinearLayout>
 
+    <RelativeLayout
+        android:id="@+id/relativeLayout1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginTop="35sp">
 
 
-
+    <com.taishi.library.Indicator
+        android:id="@+id/indicator"
+        android:layout_width="match_parent"
+        android:layout_height="180dp"
+        android:layout_alignParentTop="true"
+        app:bar_num="50"
+        app:bar_color="@color/white"
+        app:step_num="70"
+        app:duration="20000"
+        />
+    </RelativeLayout>
 
 
 </LinearLayout>
