@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Typeface;
+import android.graphics.YuvImage;
 import android.location.Location;
 import android.location.LocationManager;
 import android.media.MediaRecorder;
@@ -17,6 +18,7 @@ import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.jaredrummler.materialspinner.MaterialSpinner;
 import com.taishi.library.Indicator;
 
 import java.io.File;
@@ -31,7 +33,7 @@ public class MainActivity extends AppCompatActivity {
     Thread runner;
     private static double mEMA = 0.0;
     static final private double EMA_FILTER = 0.6;
-    String strNoise, strLatLon, strtime;
+    String strNoise, strLatLon, strTime, strSpinnerText;
     File rootFile, CsvFile;
     FileWriter writer;
     Boolean aBoolean;
@@ -42,6 +44,11 @@ public class MainActivity extends AppCompatActivity {
     Typeface typeface, typeface2;
     Indicator indicator;
     int indicatorstepnum = 0;
+    int timer_int = 500;
+    int spinner_index;
+
+    MaterialSpinner spinner;
+
     //Delimiter used in CSV file
     private static final String COMMA_DELIMITER = ",";
     private static final String NEW_LINE_SEPARATOR = "\n";
@@ -69,11 +76,47 @@ public class MainActivity extends AppCompatActivity {
         tvNoiseDetector = findViewById(R.id.tv_noise_detector);
         tvLocation = findViewById(R.id.tv_location);
         tvTimeStamp = findViewById(R.id.tv_time_stamp);
+        indicator = findViewById(R.id.indicator);
+
+        spinner = findViewById(R.id.spinner);
+        spinner.setItems("1 Second", "5 Second", "1 Minute", "5 Minute", "10 Minute", "20 Minute", "30 Minute");
+        spinner.setOnItemSelectedListener(new MaterialSpinner.OnItemSelectedListener<String>() {
+
+            @Override
+            public void onItemSelected(MaterialSpinner view, int position, long id, String item) {
+                Toast.makeText(MainActivity.this, String .valueOf(position), Toast.LENGTH_SHORT).show();
 
 
-         indicator = findViewById(R.id.indicator);
+                if (item == "1 Second") {
+                    timer_int = 1000;
+                } else if (item == "5 Second") {
+                    timer_int = 5000;
+                } else if (item == "1 Minute") {
+                    timer_int = 60000;
+                } else if (item == "5 Minute") {
+                    timer_int = 300000;
+                } else if (item == "10 Minute") {
+                    timer_int = 600000;
+                } else if (item == "20 Minute") {
+                    timer_int = (int) 1.2e+6;
+                } else if (item == "30 Minute") {
+                    timer_int = (int) 1.8e+6;
+                }
+                Utilities.putValueInEditor(MainActivity.this).putInt("timer", timer_int).commit();
+                Utilities.putValueInEditor(MainActivity.this).putInt("spinner_index_value", position).commit();
+            }
+        });
 
+        spinner_index = Utilities.getSharedPreferences(MainActivity.this).getInt("spinner_index_value",0);
+        spinner.setSelectedIndex(spinner_index);
 
+        Handler handler = new Handler();
+        Runnable r = new Runnable() {
+            public void run() {
+                timer_int = Utilities.getSharedPreferences(MainActivity.this).getInt("timer", 1000);
+            }
+        };
+        handler.postDelayed(r, 1000);
 
 
         typeface = Typeface.createFromAsset(this.getAssets(), "billabong.ttf");
@@ -87,7 +130,7 @@ public class MainActivity extends AppCompatActivity {
                 public void run() {
                     while (runner != null) {
                         try {
-                            Thread.sleep(1000);
+                            Thread.sleep(timer_int);
                             Log.i("Noise", "Tock");
                         } catch (InterruptedException e) {
                         }
@@ -174,7 +217,7 @@ public class MainActivity extends AppCompatActivity {
         indicatorstepnum = mStatusView.getText().length();
         indicator.setBarNum(indicatorstepnum);
         indicator.setStepNum(indicatorstepnum);
-        indicator.setDuration(100000);
+        indicator.setDuration(100);
 
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
@@ -234,7 +277,7 @@ public class MainActivity extends AppCompatActivity {
                 writer.append(NEW_LINE_SEPARATOR);
             }
             Date currentTime = Calendar.getInstance().getTime();
-            strtime = String.valueOf(currentTime);
+            strTime = String.valueOf(currentTime);
 
             strLatLon = String.valueOf(lattitude + "," + longitude);
 
@@ -243,7 +286,7 @@ public class MainActivity extends AppCompatActivity {
             writer.append(COMMA_DELIMITER);
             writer.append(strLatLon);
             writer.append(COMMA_DELIMITER);
-            writer.append(strtime);
+            writer.append(strTime);
             writer.append(NEW_LINE_SEPARATOR);
 
 
@@ -251,7 +294,7 @@ public class MainActivity extends AppCompatActivity {
             writer.close();
 
             tvLocation.setText(strLatLon);
-            tvTimeStamp.setText(strtime);
+            tvTimeStamp.setText(strTime);
 
             // Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show();
 
