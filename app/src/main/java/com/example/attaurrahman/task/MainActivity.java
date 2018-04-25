@@ -12,12 +12,12 @@ import android.os.Environment;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.jaredrummler.materialspinner.MaterialSpinner;
 import com.taishi.library.Indicator;
 
@@ -84,7 +84,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onItemSelected(MaterialSpinner view, int position, long id, String item) {
-                Toast.makeText(MainActivity.this, String .valueOf(position), Toast.LENGTH_SHORT).show();
+             //   Toast.makeText(MainActivity.this, String.valueOf(position), Toast.LENGTH_SHORT).show();
 
 
                 if (item == "1 Second") {
@@ -107,7 +107,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        spinner_index = Utilities.getSharedPreferences(MainActivity.this).getInt("spinner_index_value",0);
+        spinner_index = Utilities.getSharedPreferences(MainActivity.this).getInt("spinner_index_value", 0);
         spinner.setSelectedIndex(spinner_index);
 
         Handler handler = new Handler();
@@ -215,9 +215,13 @@ public class MainActivity extends AppCompatActivity {
         mStatusView.setText(strNoise);
 
         indicatorstepnum = mStatusView.getText().length();
-        indicator.setBarNum(indicatorstepnum);
-        indicator.setStepNum(indicatorstepnum);
+        int i =0;
+        i  = indicatorstepnum/10;
+
+        indicator.setBarNum(50);
+        indicator.setStepNum((int) getAmplitude());
         indicator.setDuration(100);
+
 
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
@@ -350,7 +354,5 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-
-
 }
 
