@@ -229,8 +229,9 @@ public class MainActivity extends AppCompatActivity {
 
         } else if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             getLocation();
+            generateNoteOnSD();
         }
-        generateNoteOnSD();
+
 
 
     }
