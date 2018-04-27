@@ -4,7 +4,6 @@ import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Typeface;
-import android.graphics.YuvImage;
 import android.location.Location;
 import android.location.LocationManager;
 import android.media.MediaRecorder;
@@ -12,7 +11,6 @@ import android.os.Environment;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -225,7 +223,8 @@ public class MainActivity extends AppCompatActivity {
 
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-            Toast.makeText(this, "No GPS", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Please turn on your location", Toast.LENGTH_SHORT).show();
+
 
         } else if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             getLocation();
@@ -353,6 +352,8 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, "Unable to Trace your location", Toast.LENGTH_SHORT).show();
 
             }
+
+
         }
     }
 }
