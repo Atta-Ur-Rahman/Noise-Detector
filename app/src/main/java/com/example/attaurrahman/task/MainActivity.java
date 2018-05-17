@@ -1,29 +1,41 @@
 package com.example.attaurrahman.task;
 
 import android.Manifest;
+import android.app.ActivityManager;
 import android.content.Context;
+import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Typeface;
 import android.location.Location;
 import android.location.LocationManager;
 import android.media.MediaRecorder;
+import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import com.jaredrummler.materialspinner.MaterialSpinner;
 import com.taishi.library.Indicator;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+
+import static java.lang.Math.log10;
 
 public class MainActivity extends AppCompatActivity {
     TextView mStatusView, tvNoiseDetector, tvLocation, tvTimeStamp;
@@ -31,7 +43,9 @@ public class MainActivity extends AppCompatActivity {
     Thread runner;
     private static double mEMA = 0.0;
     static final private double EMA_FILTER = 0.6;
-    String strNoise, strLatLon, strTime, strSpinnerText;
+    String strNoise;
+    String strLatLon;
+    String strTime;
     File rootFile, CsvFile;
     FileWriter writer;
     Boolean aBoolean;
@@ -42,25 +56,30 @@ public class MainActivity extends AppCompatActivity {
     Typeface typeface, typeface2;
     Indicator indicator;
     int indicatorstepnum = 0;
-    int timer_int = 500;
+    int timer_int ;
     int spinner_index;
 
     MaterialSpinner spinner;
 
+    private static MainActivity instance;
+
+    boolean aBooleanIsStarted = true;
+    Button btnReset;
     //Delimiter used in CSV file
     private static final String COMMA_DELIMITER = ",";
     private static final String NEW_LINE_SEPARATOR = "\n";
 
-    //CSV file header
-    private static final String FILE_HEADER = "id,firstName,lastName,gender,age";
+    boolean aBooleanFirst,aBooleanSecond;
+
+
+
 
     final Runnable updater = new Runnable() {
 
         public void run() {
             updateTv();
-        }
 
-        ;
+        }
     };
 
     final Handler mHandler = new Handler();
@@ -69,6 +88,28 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        instance = this;
+        clearApplicationData();
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+
+        timer_int = Utilities.getSharedPreferences(MainActivity.this).getInt("timer", 1000);
+
+        aBooleanIsStarted = Utilities.getSharedPreferences(MainActivity.this).getBoolean("isStarted", true);
+
+        if (aBooleanIsStarted) {
+            if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+
+                ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.RECORD_AUDIO
+                        , Manifest.permission.WRITE_EXTERNAL_STORAGE}, 0);
+
+            } else {
+
+                startRecorder();
+
+
+            }
+        }
+
 
         mStatusView = findViewById(R.id.status);
         tvNoiseDetector = findViewById(R.id.tv_noise_detector);
@@ -76,14 +117,13 @@ public class MainActivity extends AppCompatActivity {
         tvTimeStamp = findViewById(R.id.tv_time_stamp);
         indicator = findViewById(R.id.indicator);
 
+
         spinner = findViewById(R.id.spinner);
         spinner.setItems("1 Second", "5 Second", "1 Minute", "5 Minute", "10 Minute", "20 Minute", "30 Minute");
         spinner.setOnItemSelectedListener(new MaterialSpinner.OnItemSelectedListener<String>() {
 
             @Override
             public void onItemSelected(MaterialSpinner view, int position, long id, String item) {
-             //   Toast.makeText(MainActivity.this, String.valueOf(position), Toast.LENGTH_SHORT).show();
-
 
                 if (item == "1 Second") {
                     timer_int = 1000;
@@ -108,21 +148,13 @@ public class MainActivity extends AppCompatActivity {
         spinner_index = Utilities.getSharedPreferences(MainActivity.this).getInt("spinner_index_value", 0);
         spinner.setSelectedIndex(spinner_index);
 
-        Handler handler = new Handler();
-        Runnable r = new Runnable() {
-            public void run() {
-                timer_int = Utilities.getSharedPreferences(MainActivity.this).getInt("timer", 1000);
-            }
-        };
-        handler.postDelayed(r, 1000);
-
 
         typeface = Typeface.createFromAsset(this.getAssets(), "billabong.ttf");
         typeface2 = Typeface.createFromAsset(this.getAssets(), "SanFrancisco.otf");
         tvTimeStamp.setTypeface(typeface2);
         tvLocation.setTypeface(typeface2);
         mStatusView.setTypeface(typeface2);
-        tvNoiseDetector.setTypeface(typeface);
+        tvNoiseDetector.setTypeface(typeface2);
         if (runner == null) {
             runner = new Thread() {
                 public void run() {
@@ -142,22 +174,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void onResume() {
-        super.onResume();
 
-        if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
 
-            ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.RECORD_AUDIO
-                    , Manifest.permission.WRITE_EXTERNAL_STORAGE}, 0);
-
-        } else {
-            startRecorder();
-        }
-    }
-
-    public void onPause() {
+    @Override
+    protected void onPause() {
         super.onPause();
-        stopRecorder();
+        Utilities.putValueInEditor(MainActivity.this).putBoolean("isStarted", false).commit();
+
+
     }
 
     public void startRecorder() {
@@ -176,23 +200,18 @@ public class MainActivity extends AppCompatActivity {
                 android.util.Log.e("[Monkey]", "SecurityException: " + android.util.Log.getStackTraceString(e));
             }
             try {
+
+
                 mRecorder.start();
+
             } catch (java.lang.SecurityException e) {
                 android.util.Log.e("[Monkey]", "SecurityException: " + android.util.Log.getStackTraceString(e));
             }
-
-            //mEMA = 0.0;
         }
+
 
     }
 
-    public void stopRecorder() {
-        if (mRecorder != null) {
-            mRecorder.stop();
-            mRecorder.release();
-            mRecorder = null;
-        }
-    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -208,19 +227,38 @@ public class MainActivity extends AppCompatActivity {
 
     public void updateTv() {
 
-        strNoise = Double.toString((getAmplitudeEMA())) + " dB";
 
-        mStatusView.setText(strNoise);
+     //   Toast.makeText(this, "save", Toast.LENGTH_SHORT).show();
 
+        aBooleanFirst = true;
+        aBooleanSecond = false;
+        if (aBooleanFirst){
+
+        }
+        if (tvNoiseDetector.getText().equals("-∞ dBA")){
+            startRecorder();
+        }
+
+
+
+        double dNoise = soundDb(1.1);
+        DecimalFormat decimalFormat = new DecimalFormat("####.##");
+        String strNoiseDF = decimalFormat.format(dNoise);
+        strNoise = strNoiseDF;
+        mStatusView.setText(strNoise+" dBA");
+
+        Log.d("zma str noise", String.valueOf(getAmplitudeEMA()));
+
+
+        ////this code use for  indicator
         indicatorstepnum = mStatusView.getText().length();
-        int i =0;
-        i  = indicatorstepnum/10;
-
+        int i = 0;
+        i = indicatorstepnum / 10;
         indicator.setBarNum(50);
         indicator.setStepNum((int) getAmplitude());
         indicator.setDuration(100);
 
-
+///get Location
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             Toast.makeText(this, "Please turn on your location", Toast.LENGTH_SHORT).show();
@@ -229,14 +267,15 @@ public class MainActivity extends AppCompatActivity {
         } else if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             getLocation();
             generateNoteOnSD();
-        }
 
+        }
 
 
     }
 
+
     public double soundDb(double ampl) {
-        return 20 * Math.log10(getAmplitudeEMA() / ampl);
+        return 20 * log10(getAmplitudeEMA() / ampl);
     }
 
     public double getAmplitude() {
@@ -272,7 +311,7 @@ public class MainActivity extends AppCompatActivity {
             writer = new FileWriter(CsvFile, true);
             aBoolean = Utilities.getSharedPreferences(this).getBoolean("title", false);
             if (aBoolean) {
-                writer.append("Noise");
+                writer.append("Noise dBA");
                 writer.append(COMMA_DELIMITER);
                 writer.append("Location");
                 writer.append(COMMA_DELIMITER);
@@ -280,8 +319,10 @@ public class MainActivity extends AppCompatActivity {
                 writer.append("Time Stamp");
                 writer.append(NEW_LINE_SEPARATOR);
             }
-            Date currentTime = Calendar.getInstance().getTime();
-            strTime = String.valueOf(currentTime);
+            Calendar c = Calendar.getInstance();
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            String formattedDate = sdf.format(c.getTime());
+            strTime = String.valueOf(formattedDate);
 
             strLatLon = String.valueOf(lattitude + "," + longitude);
 
@@ -356,5 +397,37 @@ public class MainActivity extends AppCompatActivity {
 
         }
     }
+
+
+public static MainActivity getInstance(){
+        return instance;
+}
+    public void clearApplicationData() {
+        File cache = getCacheDir();
+        File appDir = new File(cache.getParent());
+        if(appDir.exists()){
+            String[] children = appDir.list();
+            for(String s : children){
+                if(!s.equals("lib")){
+                    deleteDir(new File(appDir, s));
+                    Log.i("TAG", "File /data/data/APP_PACKAGE/" + s +" DELETED ");
+                }
+            }
+        }
+    }
+    public static boolean deleteDir(File dir) {
+        if (dir != null && dir.isDirectory()) {
+            String[] children = dir.list();
+            for (int i = 0; i < children.length; i++) {
+                boolean success = deleteDir(new File(dir, children[i]));
+                if (!success) {
+                    return false;
+                }
+            }
+        }
+        return dir.delete();
+    }
+
+
 }
 
