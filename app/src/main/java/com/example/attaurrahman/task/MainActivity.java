@@ -8,6 +8,7 @@ import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Typeface;
 import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
 import android.media.MediaRecorder;
 import android.os.Build;
@@ -24,6 +25,11 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.maps.CameraUpdate;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.jaredrummler.materialspinner.MaterialSpinner;
 import com.taishi.library.Indicator;
 
@@ -38,11 +44,13 @@ import java.util.Date;
 import static java.lang.Math.log10;
 
 public class MainActivity extends AppCompatActivity {
+    private static final long LOCATION_REFRESH_TIME = 1;
+    private static final float LOCATION_REFRESH_DISTANCE = 1;
     TextView mStatusView, tvNoiseDetector, tvLocation, tvTimeStamp;
     MediaRecorder mRecorder;
     Thread runner;
     private static double mEMA = 0.0;
-    static final private double EMA_FILTER = 0.6;
+    static final private double EMA_FILTER = 0.8;
     String strNoise;
     String strLatLon;
     String strTime;
@@ -54,9 +62,7 @@ public class MainActivity extends AppCompatActivity {
     LocationManager locationManager;
     private static final int REQUEST_LOCATION = 1;
     Typeface typeface, typeface2;
-    Indicator indicator;
-    int indicatorstepnum = 0;
-    int timer_int ;
+    int timer_int =300;
     int spinner_index;
 
     MaterialSpinner spinner;
@@ -69,9 +75,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String COMMA_DELIMITER = ",";
     private static final String NEW_LINE_SEPARATOR = "\n";
 
-    boolean aBooleanFirst,aBooleanSecond;
-
-
+    boolean aBooleanFirst, aBooleanSecond;
 
 
     final Runnable updater = new Runnable() {
@@ -84,15 +88,18 @@ public class MainActivity extends AppCompatActivity {
 
     final Handler mHandler = new Handler();
 
+    LocationManager mLocationManager;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         instance = this;
         clearApplicationData();
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
-        timer_int = Utilities.getSharedPreferences(MainActivity.this).getInt("timer", 1000);
+        timer_int = Utilities.getSharedPreferences(MainActivity.this).getInt("timer", 300);
 
         aBooleanIsStarted = Utilities.getSharedPreferences(MainActivity.this).getBoolean("isStarted", true);
 
@@ -111,11 +118,16 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
+        mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+
+        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, LOCATION_REFRESH_TIME,
+                LOCATION_REFRESH_DISTANCE, mLocationListener);
+
+
         mStatusView = findViewById(R.id.status);
         tvNoiseDetector = findViewById(R.id.tv_noise_detector);
         tvLocation = findViewById(R.id.tv_location);
         tvTimeStamp = findViewById(R.id.tv_time_stamp);
-        indicator = findViewById(R.id.indicator);
 
 
         spinner = findViewById(R.id.spinner);
@@ -126,7 +138,7 @@ public class MainActivity extends AppCompatActivity {
             public void onItemSelected(MaterialSpinner view, int position, long id, String item) {
 
                 if (item == "1 Second") {
-                    timer_int = 1000;
+                    timer_int = 300;
                 } else if (item == "5 Second") {
                     timer_int = 5000;
                 } else if (item == "1 Minute") {
@@ -172,9 +184,17 @@ public class MainActivity extends AppCompatActivity {
             runner.start();
             Log.d("Noise", "start runner()");
         }
+
+
+
     }
 
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+    }
 
     @Override
     protected void onPause() {
@@ -228,47 +248,38 @@ public class MainActivity extends AppCompatActivity {
     public void updateTv() {
 
 
-     //   Toast.makeText(this, "save", Toast.LENGTH_SHORT).show();
+        //   Toast.makeText(this, "save", Toast.LENGTH_SHORT).show();
 
         aBooleanFirst = true;
         aBooleanSecond = false;
-        if (aBooleanFirst){
+        if (aBooleanFirst) {
 
         }
-        if (tvNoiseDetector.getText().equals("-∞ dBA")){
+        if (tvNoiseDetector.getText().equals("-∞ dBA")) {
             startRecorder();
         }
 
 
-
-        double dNoise = soundDb(1.1);
-        DecimalFormat decimalFormat = new DecimalFormat("####.##");
+        double dNoise = soundDb(1.5);
+        DecimalFormat decimalFormat = new DecimalFormat("##");
         String strNoiseDF = decimalFormat.format(dNoise);
         strNoise = strNoiseDF;
-        mStatusView.setText(strNoise+" dBA");
+        mStatusView.setText(strNoise + " dBA");
 
         Log.d("zma str noise", String.valueOf(getAmplitudeEMA()));
 
 
-        ////this code use for  indicator
-        indicatorstepnum = mStatusView.getText().length();
-        int i = 0;
-        i = indicatorstepnum / 10;
-        indicator.setBarNum(50);
-        indicator.setStepNum((int) getAmplitude());
-        indicator.setDuration(100);
-
 ///get Location
-        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+        mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        if (!mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             Toast.makeText(this, "Please turn on your location", Toast.LENGTH_SHORT).show();
 
-
-        } else if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+        } else if (mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             getLocation();
             generateNoteOnSD();
 
         }
+
 
 
     }
@@ -288,7 +299,7 @@ public class MainActivity extends AppCompatActivity {
 
     public double getAmplitudeEMA() {
         double amp = getAmplitude();
-        mEMA = EMA_FILTER * amp + (1.0 - EMA_FILTER) * mEMA;
+        mEMA = EMA_FILTER * amp + (0.1 - EMA_FILTER) * mEMA;
         return mEMA;
     }
 
@@ -320,7 +331,7 @@ public class MainActivity extends AppCompatActivity {
                 writer.append(NEW_LINE_SEPARATOR);
             }
             Calendar c = Calendar.getInstance();
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            SimpleDateFormat sdf = new SimpleDateFormat("dd MMMM yyyy hh:mm:ss a");
             String formattedDate = sdf.format(c.getTime());
             strTime = String.valueOf(formattedDate);
 
@@ -338,7 +349,7 @@ public class MainActivity extends AppCompatActivity {
             writer.flush();
             writer.close();
 
-            tvLocation.setText(strLatLon);
+//            tvLocation.setText(strLatLon);
             tvTimeStamp.setText(strTime);
 
             // Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show();
@@ -359,11 +370,11 @@ public class MainActivity extends AppCompatActivity {
             ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_LOCATION);
 
         } else {
-            Location location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+            Location location = mLocationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
 
-            Location location1 = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            Location location1 = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
 
-            Location location2 = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
+            Location location2 = mLocationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
 
             if (location != null) {
                 double latti = location.getLatitude();
@@ -399,22 +410,24 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-public static MainActivity getInstance(){
+    public static MainActivity getInstance() {
         return instance;
-}
+    }
+
     public void clearApplicationData() {
         File cache = getCacheDir();
         File appDir = new File(cache.getParent());
-        if(appDir.exists()){
+        if (appDir.exists()) {
             String[] children = appDir.list();
-            for(String s : children){
-                if(!s.equals("lib")){
+            for (String s : children) {
+                if (!s.equals("lib")) {
                     deleteDir(new File(appDir, s));
-                    Log.i("TAG", "File /data/data/APP_PACKAGE/" + s +" DELETED ");
+                    Log.i("TAG", "File /data/data/APP_PACKAGE/" + s + " DELETED ");
                 }
             }
         }
     }
+
     public static boolean deleteDir(File dir) {
         if (dir != null && dir.isDirectory()) {
             String[] children = dir.list();
@@ -429,5 +442,34 @@ public static MainActivity getInstance(){
     }
 
 
-}
+    private final LocationListener mLocationListener = new LocationListener() {
+        @Override
+        public void onLocationChanged(final Location location) {
 
+            //your code here
+
+//            Toast.makeText(MainActivity.this, "change YOure Location", Toast.LENGTH_SHORT).show();
+            Log.d("location",String.valueOf(location.getLatitude())+"  "+String.valueOf(location.getLongitude()));
+
+            tvLocation.setText(String.valueOf(location.getLatitude())+" , "+String.valueOf(location.getLongitude()));
+        }
+
+        @Override
+        public void onStatusChanged(String s, int i, Bundle bundle) {
+
+        }
+
+        @Override
+        public void onProviderEnabled(String s) {
+
+        }
+
+        @Override
+        public void onProviderDisabled(String s) {
+
+
+        }
+    };
+
+
+}
